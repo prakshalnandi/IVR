@@ -70,7 +70,6 @@ class image_converter:
         self.cenGreen.data = self.transform(self.detectGreenCenter(Image), dist, yellow_joint_position)
         self.cenRed.data = self.transform(self.detectRedCenter(Image), dist, yellow_joint_position)
         self.cenYellow.data = self.transform(self.detectYellowCenter(Image), dist, yellow_joint_position)
-        print(f"camera 2 (x,z): {self.transform(self.detectGreenCenter(Image), dist, yellow_joint_position)}")
         return "a"
 
     def transform(self, coord, dist, origin):

@@ -45,7 +45,7 @@ class image_converter:
         # Uncomment if you want to save the image
         cv2.imwrite('image_copy.png', self.cv_image1)
 
-        # im1=cv2.imshow('window1', self.cv_image1)
+        # cv2.imshow('window1', self.cv_image1)
         # cv2.waitKey(1)
 
         self.CalculateJoints(self.cv_image1)
@@ -86,12 +86,6 @@ class image_converter:
         self.cenGreen.data = self.transform(self.detectGreenCenter(Image), dist, yellow_joint_position)
         self.cenRed.data = self.transform(self.detectRedCenter(Image), dist, yellow_joint_position)
         self.cenYellow.data = self.transform(self.detectYellowCenter(Image), dist, yellow_joint_position)
-        print(f"camera 1 (y,z): {self.transform(self.detectGreenCenter(Image), dist, yellow_joint_position)}")
-
-
-        # joint1 = np.arctan2(cenYellow[0] - cenBlue[0],cenYellow[1] - cenBlue[1])
-        # joint2 = np.arctan2(cenBlue[0] - cenGreen[0], cenBlue[1] - cenGreen[1]) - joint1
-        # joint3 = np.arctan2(cenGreen[0] - cenRed[0], cenGreen[1] - cenRed[1]) - joint1 - joint2
 
         return "a"
 
@@ -144,10 +138,7 @@ class image_converter:
         # Green Blob
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         maskgreen = cv2.inRange(hsv, (50, 100, 20), (70, 255, 255))
-        # print(np.unique(maskgreen))
-        # ret, thresh = cv2.threshold(maskgreen, 127, 255, 0)
-        # contours, hierarchy = cv2.findContours(thresh, 1, 2)
-        # cnt = contours[0]
+
         cGreen = self.detectCenter(maskgreen)
 
         return cGreen
