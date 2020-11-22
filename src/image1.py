@@ -46,14 +46,14 @@ class image_converter:
         # Uncomment if you want to save the image
         cv2.imwrite('image_copy.png', self.cv_image1)
 
-        # cv2.imshow('window1', self.cv_image1)
-        # cv2.waitKey(1)
-        # sphere = get_target(self.cv_image1)
+        self.CalculateJoints(self.cv_image1)
+        # sphere = self.sphere.data
+        # print(sphere)
         # img1 = self.cv_image1
         # img1 = cv2.circle(img1, tuple(sphere), 2, (255, 0, 0), 2)
         # cv2.imshow('window1', img1)
         # cv2.waitKey(1)
-        self.CalculateJoints(self.cv_image1)
+
 
         # self.robot_joint2_pub.publish(self.joint2)
         # self.robot_joint4_pub.publish(self.joint4)
@@ -88,7 +88,9 @@ class image_converter:
         dist = self.pixel2meter(Image)
         yellow_joint_position = self.detectYellowCenter(Image)
         sphere = get_target(Image)
-        self.sphere.data = self.transform(sphere, dist, yellow_joint_position)
+        if sphere is not None:
+            self.sphere.data = self.transform(sphere, dist, yellow_joint_position)
+            # self.sphere.data = sphere
         self.cenBlue.data = self.transform(self.detectBlueCenter(Image), dist, yellow_joint_position)
         self.cenGreen.data = self.transform(self.detectGreenCenter(Image), dist, yellow_joint_position)
         self.cenRed.data = self.transform(self.detectRedCenter(Image), dist, yellow_joint_position)
@@ -208,7 +210,6 @@ def get_target(image):
             sphere = np.array([centre_x, centre_y])
         elif compactness <= 0.925 and convexity > 0.95:
             cuboid = np.array([centre_x, centre_y])
-
     return sphere
 
 

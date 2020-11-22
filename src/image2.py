@@ -84,7 +84,8 @@ class image_converter:
         dist = self.pixel2meter(Image)
         yellow_joint_position = self.detectYellowCenter(Image)
         sphere = get_target(Image)
-        self.sphere.data = self.transform(sphere, dist, yellow_joint_position)
+        if sphere is not None:
+            self.sphere.data = self.transform(sphere, dist, yellow_joint_position)
         self.cenBlue.data = self.transform(self.detectBlueCenter(Image), dist, yellow_joint_position)
         self.cenGreen.data = self.transform(self.detectGreenCenter(Image), dist, yellow_joint_position)
         self.cenRed.data = self.transform(self.detectRedCenter(Image), dist, yellow_joint_position)
