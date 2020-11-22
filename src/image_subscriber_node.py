@@ -27,6 +27,8 @@ class subscribe:
         self.image2RedSub = rospy.Subscriber("/Image2/Red", Float64MultiArray, self.callback6)
         self.image2GreenSub = rospy.Subscriber("/Image2/Green", Float64MultiArray, self.callback7)
         self.image2YellowSub = rospy.Subscriber("/Image2/Yellow", Float64MultiArray, self.callback8)
+        self.image1SphereSub = rospy.Subscriber("/Image1/Sphere", Float64MultiArray, self.sphere_yz_callback)
+        self.image2SphereSub = rospy.Subscriber("/Image2/Sphere", Float64MultiArray, self.sphere_xz_callback)
 
         self.image1Blue = Float64MultiArray()
         self.image1Red = Float64MultiArray()
@@ -36,6 +38,8 @@ class subscribe:
         self.image2Red = Float64MultiArray()
         self.image2Green = Float64MultiArray()
         self.image2Yellow = Float64MultiArray()
+        self.sphere_yz = Float64MultiArray()
+        self.sphere_xz = Float64MultiArray()
 
         self.robot_joint2_pub = rospy.Publisher("/Image/Joint2", Float64, queue_size=10)
         self.robot_joint3_pub = rospy.Publisher("/Image/Joint3", Float64, queue_size=10)
@@ -45,6 +49,12 @@ class subscribe:
         self.joint4 = Float64()
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
+
+    def sphere_yz_callback(self, data):
+        self.sphere_yz.data = data.data
+
+    def sphere_xz_callback(self, data):
+        self.sphere_xz.data = data.data
 
     def callback1(self, data):
         self.image1Blue.data = data.data
@@ -81,10 +91,14 @@ class subscribe:
         # self.joint3.data = np.arctan2(self.image2Yellow.data[0] - self.image2Blue.data[0],self.image2Yellow.data[1] - self.image2Blue.data[1])
 
         try:
-            self.joint2.data = -np.arctan2(self.image1Green.data[0] - self.image1Blue.data[0],
-                                          self.image1Green.data[1] - self.image1Blue.data[1])
-            self.joint3.data = -np.arctan2(self.image2Green.data[0] - self.image2Blue.data[0],
-                                           self.image2Green.data[1] - self.image2Blue.data[1])
+            # print(self.sphere_yz.data, self.sphere_xz.data)
+            sphere_position = np.array([self.sphere_xz.data[0], self.sphere_yz.data[0],
+                                        (self.sphere_xz.data[1] + self.sphere_yz.data[1])/2])
+            print(f"Sphere is at: {sphere_position}")
+            # self.joint2.data = -np.arctan2(self.image1Green.data[0] - self.image1Blue.data[0],
+            #                               self.image1Green.data[1] - self.image1Blue.data[1])
+            # self.joint3.data = -np.arctan2(self.image2Green.data[0] - self.image2Blue.data[0],
+            #                                self.image2Green.data[1] - self.image2Blue.data[1])
 
             # To get the angle for joint 4 we have to use the forward kinematics matrix.
             # print(f"camera1: {self.image1Red.data}, camera 2: {self.image2Red.data}")
@@ -94,11 +108,27 @@ class subscribe:
                                                                                       self.image2Green.data[1]) / 2])
             blue_pos = np.array([self.image2Blue.data[0], self.image1Blue.data[0], (self.image1Blue.data[1] +
                                                                                        self.image2Blue.data[1]) / 2])
+
+            self.joint2.data = -np.arctan2(green_pos[1] - blue_pos[1],
+                                           green_pos[2] - blue_pos[2])
+            self.joint3.data = np.arctan2(green_pos[0] - blue_pos[0],
+                                           green_pos[2] - blue_pos[2])
+            print("-" * 20)
+            print(f"cam 1: {self.image1Green.data}")
+            print(f"cam 2: {self.image2Green.data}")
+            print(f"green: {green_pos}")
+            print(f"blue: {blue_pos}")
+            print("theta2: ", self.joint2.data)
+            print("theta3: ", self.joint3.data)
+
+            link1 = blue_pos  # yellow joint is always at (0,0,0)
             link2 = green_pos - blue_pos
             link3 = red_pos - green_pos
-            # print(link2, link3)
-            # print(f"arccos: {np.arccos(link3.dot(link2) / (np.linalg.norm(link3) *np.linalg.norm(link2)))}")
-            # print(np.linalg.det([link2, link3]), np.dot(link2, link3))
+
+            t3 = -link2[2] / (3.5 * np.sin(self.joint2.data))
+            t3_2 = link2[1]
+            print(f"t3: {np.arccos(t3)}")
+            # print("Theta2: ", np.arccos(link1.dot(link2) / (np.linalg.norm(link1) * np.linalg.norm(link2))))
 
             # need to subtract by pi/2 for theta1 and theta2 as this is what is done in the FK derivation
             theta1 = -np.pi/2
@@ -140,7 +170,7 @@ class subscribe:
                 self.joint4.data = -theta4
             else:
                 self.joint4.data = theta4
-            print(self.joint4.data)
+            print("theta4: ", self.joint4.data)
             self.robot_joint2_pub.publish(self.joint2)
             self.robot_joint3_pub.publish(self.joint3)
             self.robot_joint4_pub.publish(self.joint4)
