@@ -83,13 +83,26 @@ class image_converter:
 
         dist = self.pixel2meter(Image)
         yellow_joint_position = self.detectYellowCenter(Image)
+        blue_joint_position = self.detectBlueCenter(Image)
+        green_joint_position = self.detectGreenCenter(Image)
+        red_joint_position = self.detectRedCenter(Image)
         sphere = get_target(Image)
+
         if sphere is not None:
             self.sphere.data = self.transform(sphere, dist, yellow_joint_position)
-        self.cenBlue.data = self.transform(self.detectBlueCenter(Image), dist, yellow_joint_position)
-        self.cenGreen.data = self.transform(self.detectGreenCenter(Image), dist, yellow_joint_position)
-        self.cenRed.data = self.transform(self.detectRedCenter(Image), dist, yellow_joint_position)
-        self.cenYellow.data = self.transform(self.detectYellowCenter(Image), dist, yellow_joint_position)
+        if yellow_joint_position is not None:
+            self.cenYellow.data = self.transform(yellow_joint_position, dist, yellow_joint_position)
+        if blue_joint_position is not None:
+            self.cenBlue.data = self.transform(blue_joint_position, dist, yellow_joint_position)
+        if green_joint_position is not None:
+            self.cenGreen.data = self.transform(green_joint_position, dist, yellow_joint_position)
+        if red_joint_position is not None:
+            self.cenRed.data = self.transform(red_joint_position, dist, yellow_joint_position)
+
+        # self.cenBlue.data = self.transform(self.detectBlueCenter(Image), dist, yellow_joint_position)
+        # self.cenGreen.data = self.transform(self.detectGreenCenter(Image), dist, yellow_joint_position)
+        # self.cenRed.data = self.transform(self.detectRedCenter(Image), dist, yellow_joint_position)
+        # self.cenYellow.data = self.transform(self.detectYellowCenter(Image), dist, yellow_joint_position)
         return "a"
 
     def transform(self, coord, dist, origin):
@@ -120,42 +133,58 @@ class image_converter:
         return 2.5 / np.sqrt(dist)
 
     def detectRedCenter(self, image):
-        lower_red = np.array([0, 0, 100])
-        upper_red = np.array([0, 0, 255])
-        maskred = cv2.inRange(image, lower_red, upper_red)
+        try:
+            lower_red = np.array([0, 0, 100])
+            upper_red = np.array([0, 0, 255])
+            maskred = cv2.inRange(image, lower_red, upper_red)
 
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, (0, 100, 20), (10, 255, 255))
+            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+            mask = cv2.inRange(hsv, (0, 100, 20), (10, 255, 255))
 
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        maskOrange = cv2.inRange(hsv, (10, 100, 20), (25, 255, 255))
-        cRed = self.detectCenter(mask)
+            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+            maskOrange = cv2.inRange(hsv, (10, 100, 20), (25, 255, 255))
+            cRed = self.detectCenter(mask)
 
-        return cRed
+            return cRed
+        except:
+            # Catch all errors, as these are likely due to occlusion
+            return None
 
     def detectBlueCenter(self, image):
-        # Blue Blob
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        maskblue = cv2.inRange(hsv, (105, 100, 20), (135, 255, 255))
-        cBlue = self.detectCenter(maskblue)
+        try:
+            # Blue Blob
+            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+            maskblue = cv2.inRange(hsv, (105, 100, 20), (135, 255, 255))
+            cBlue = self.detectCenter(maskblue)
 
-        return cBlue
+            return cBlue
+        except:
+            # Catch all errors, as these are likely due to occlusion
+            return None
 
     def detectGreenCenter(self, image):
-        # Green Blob
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        maskgreen = cv2.inRange(hsv, (50, 100, 20), (70, 255, 255))
-        cGreen = self.detectCenter(maskgreen)
+        try:
+            # Green Blob
+            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+            maskgreen = cv2.inRange(hsv, (50, 100, 20), (70, 255, 255))
+            cGreen = self.detectCenter(maskgreen)
 
-        return cGreen
+            return cGreen
+        except:
+            # Catch all errors, as these are likely due to occlusion
+            return None
 
     def detectYellowCenter(self, image):
-        # Yellow Blob
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        maskyellow = cv2.inRange(hsv, (20, 100, 20), (30, 255, 255))
-        cYellow = self.detectCenter(maskyellow)
+        try:
+            # Yellow Blob
+            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+            maskyellow = cv2.inRange(hsv, (20, 100, 20), (30, 255, 255))
+            cYellow = self.detectCenter(maskyellow)
 
-        return cYellow
+            return cYellow
+        except:
+            # Catch all errors, as these are likely due to occlusion
+            return None
 
     def detectCenter(self, image):
 
