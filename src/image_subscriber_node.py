@@ -97,10 +97,10 @@ class subscribe:
         # self.joint3.data = np.arctan2(self.image2Yellow.data[0] - self.image2Blue.data[0],self.image2Yellow.data[1] - self.image2Blue.data[1])
 
         try:
-            # print(self.sphere_yz.data, self.sphere_xz.data)
-            sphere_position = np.array([self.sphere_xz.data[0], self.sphere_yz.data[0],
+            # Add 0.8 metres to the z position to account for the base platform that the robot
+            # sits on.
+            sphere_position = np.array([self.sphere_xz.data[0], self.sphere_yz.data[0], 0.8 +
                                         (self.sphere_xz.data[1] + self.sphere_yz.data[1]) / 2])
-            print(f"Sphere is at: {sphere_position}")
             self.target_x = sphere_position[0]
             self.target_y = sphere_position[1]
             self.target_z = sphere_position[2]
@@ -123,86 +123,75 @@ class subscribe:
             link3 = red_pos - green_pos
 
             ############### Testing ##################
-            print(f"green_pos {green_pos}")
             link2_norm = link2 / np.linalg.norm(link2)
-            print("link2 norm: ", link2_norm)
+            # print("link2: ", link2, green_pos, blue_pos)
             # happy with this estimation
             theta3 = np.arcsin(link2_norm[0])
             self.joint3.data = theta3
-            # theta2 = np.arccos(link2_norm[2] / np.cos(theta3))
-            # if abs(np.cos(theta3)) >= 0.1:
-            theta2 = np.arccos(link2_norm[2] / np.cos(theta3))
-            t2_plus = theta2
-            t2_minus = - theta2
+            theta4 = np.arccos(link2.dot(link3) / (np.linalg.norm(link2) * np.linalg.norm(link3)))
 
-
-            # use FK matrix to find out where theta should be positive or negative
-            # Fix theta1 to be 0 (which needs to be -pi/2 in the FK matrix)
-
-            if abs(abs(theta3) - np.pi/2) >= 0.2:
-                # if np.linalg.norm(link2 - link2_plus) < np.linalg.norm(link2 - link2_minus):
-                #     self.joint2.data = theta2
-                # else:
-                #     self.joint2.data = -theta2
-                print(f"link2 is: {link2}")
-                if link2[1] < 0:
-                    self.joint2.data = theta2
-                else:
-                    self.joint2.data = -theta2
-                print(f"Theta2 estimate is: {self.joint2.data}")
-            print(f"Theta3 estimate is: {self.joint3.data}")
-
-
-            # need to subtract by pi/2 for theta1 and theta2 as this is what is done in the FK derivation
-            theta1 = -np.pi / 2
-            theta2 = self.joint2.data - np.pi / 2
-            theta3 = self.joint3.data
-
-            # define some values that will simplify equations further below
-            c1 = np.cos(theta1)
-            c2 = np.cos(theta2)
             c3 = np.cos(theta3)
-            s1 = np.sin(theta1)
-            s2 = np.sin(theta2)
             s3 = np.sin(theta3)
 
-            # Find the angle between link2 and link3 using the dot product and arccos
-            theta4 = np.arccos(link2.dot(link3) / (np.linalg.norm(link3) * np.linalg.norm(link2)))
-            s4 = np.sin(theta4)
-            c4 = np.cos(theta4)
-            t2 = np.arccos(link3[2] / (-3 * np.cos(theta4)))
-            t2_minus = np.arccos(link3[2] / (-3 * np.cos(-theta4)))
-            # print(f"Theta2 guess: {t2, t2_minus}")
-            # Arccos always gives a positive angle, so we need to test if we should use that
-            # or if the negative is in fact correct.
-            # To test we use the predicted value from the FK derivation.
-            # That is link3 = A_04 - A_03 (only looking at the translation parts of the matrices.
-            link3_plus = np.array([
-                -3 * c1 * s2 * s4 + 3 * c4 * (c1 * c2 * c3 - s1 * s3),
-                3 * c4 * (c1 * s3 + c2 * c3 * s1) - 3 * s1 * s2 * s4,
-                -3 * c2 * s4 - 3 * c3 * c4 * s2,
-            ])
-            s4 = np.sin(-theta4)
-            c4 = np.cos(-theta4)
-            link3_minus = np.array([
-                -3 * c1 * s2 * s4 + 3 * c4 * (c1 * c2 * c3 - s1 * s3),
-                3 * c4 * (c1 * s3 + c2 * c3 * s1) - 3 * s1 * s2 * s4,
-                -3 * c2 * s4 - 3 * c3 * c4 * s2,
-            ])
-            # If the prediction using negative theta is closer to the measured
-            # value from CV then we use that one. Otherwise use positive value.
-            # fails if theta1 ~> 3
-            if np.linalg.norm(link3 - link3_minus) < np.linalg.norm(link3 - link3_plus):
-                self.joint4.data = -theta4
+            if abs(abs(theta3) - (np.pi/2)) > 0.1:  # i.e.theta3 = pi/2
+                # safe to divide by np.cos(theta3)
+                theta2 = np.arcsin(link2[2]/(-3.5*np.cos(theta3))) + np.pi/2
             else:
-                self.joint4.data = theta4
+                # Try to get angle using vector for link2 and the z axis
+                theta2 = np.arccos(link2.dot(np.array([0, 0, 1])) / (np.linalg.norm(link2)))
 
-            # print("theta4: ", self.joint4.data)
-            self.robot_joint2_pub.publish(self.joint2)
-            if abs(self.joint3.data**2 - (np.pi/2)**2) >= 0.3:
-                # not the case keep last known value
-                self.robot_joint3_pub.publish(self.joint3)
-            self.robot_joint4_pub.publish(self.joint4)
+            c2 = np.cos(theta2-np.pi/2)
+            s2 = np.sin(theta2-np.pi/2)
+            link2_plus = np.array([
+                3.5 * s3,
+                -3.5 * c2*c3,
+                -3.5 * c3*s2
+            ])
+            c2 = np.cos(-theta2-np.pi/2)
+            s2 = np.sin(-theta2-np.pi/2)
+            link2_minus = np.array([
+                3.5 * s3,
+                -3.5 * c2*c3,
+                -3.5 * c3*s2
+            ])
+            if np.linalg.norm(link2_plus - link2) < np.linalg.norm(link2_minus - link2):
+                self.joint2.data = theta2
+            else:
+                self.joint2.data = -theta2
+
+            c2 = np.cos(self.joint2.data-np.pi/2)
+            s2 = np.sin(self.joint2.data-np.pi/2)
+            c4 = np.cos(theta4)
+            s4 = np.sin(theta4)
+            # Need to verify the sign of theta 4
+            # assume theta1 = 0
+            link3_plus = np.array([
+                3*c4*s3,
+                -3*c4*c2*c3,
+                -3*c2*s4 - 3*c3*c4*s2
+            ])
+            c4 = np.cos(-theta4)
+            s4 = np.sin(-theta4)
+            link3_minus = np.array([
+                3*c4*s3,
+                -3*c4*c2*c3,
+                -3*c2*s4 - 3*c3*c4*s2
+            ])
+            print("plus2: ", link3_plus)
+            print("minus2: ", link3_minus)
+            print(link3)
+            if np.linalg.norm(link3_plus - link3) < np.linalg.norm(link3_minus - link3):
+                self.joint4.data = theta4
+            else:
+                self.joint4.data = -theta4
+
+            print("t2: ", self.joint2.data)
+            print("t3: ", self.joint3.data)
+            print("t4: ", self.joint4.data)
+            self.robot_joint2_pub.publish(self.joint2.data)
+            self.robot_joint3_pub.publish(self.joint3.data)
+            self.robot_joint4_pub.publish(self.joint4.data)
+
 
         except CvBridgeError as e:
             print(e)
@@ -215,32 +204,7 @@ class subscribe:
     # cv2.waitKey(1)
 
 
-def fk3(angles):
-    theta1 = angles[0] - np.pi / 2
-    theta2 = angles[1] - np.pi / 2
-    theta3 = angles[2]
-    theta4 = angles[3]
 
-    c1 = np.cos(theta1)
-    c2 = np.cos(theta2)
-    c3 = np.cos(theta3)
-    c4 = np.cos(theta4)
-    s1 = np.sin(theta1)
-    s2 = np.sin(theta2)
-    s3 = np.sin(theta3)
-    s4 = np.sin(theta4)
-    k = np.array([
-        [-c1 * s2 * s4 + c4 * (c1 * c2 * c3 - s1 * s3), -c1 * c4 * s2 - s4 * (c1 * c2 * c3 - s1 * s3),
-         -c1 * c2 * s3 - c3 * s1,
-         3.5 * c1 * c2 * c3 - 3 * c1 * s2 * s4 + 3 * c4 * (c1 * c2 * c3 - s1 * s3) - 3.5 * s1 * s3],
-        [c4 * (c1 * s3 + c2 * c3 * s1) - s1 * s2 * s4, -c4 * s1 * s2 - s4 * (c1 * s3 + c2 * c3 * s1),
-         c1 * c3 - c2 * s1 * s3,
-         3.5 * c1 * s3 + 3.5 * c2 * c3 * s1 + 3 * c4 * (c1 * s3 + c2 * c3 * s1) - 3 * s1 * s2 * s4],
-        [-c2 * s4 - c3 * c4 * s2, -c2 * c4 + c3 * s2 * s4, s2 * s3,
-         -3 * c2 * s4 - 3 * c3 * c4 * s2 - 3.5 * c3 * s2 + 2.5],
-        [0, 0, 0, 1]
-    ])
-    return k[:, -1][:-1]
 
 
 if __name__ == '__main__':
