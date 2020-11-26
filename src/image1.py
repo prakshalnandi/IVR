@@ -47,12 +47,8 @@ class image_converter:
         cv2.imwrite('image_copy.png', self.cv_image1)
 
         self.CalculateJoints(self.cv_image1)
-        # sphere = self.sphere.data
+        sphere = self.sphere.data
         # print(sphere)
-        # img1 = self.cv_image1
-        # img1 = cv2.circle(img1, tuple(sphere), 2, (255, 0, 0), 2)
-        # cv2.imshow('window1', img1)
-        # cv2.waitKey(1)
 
 
         # self.robot_joint2_pub.publish(self.joint2)
@@ -67,6 +63,8 @@ class image_converter:
             self.spherePublisher.publish(self.sphere)
         except CvBridgeError as e:
             print(e)
+
+
 
         # add code to move joints
         # cur_time = np.array([rospy.get_time()])-self.t0
@@ -102,13 +100,8 @@ class image_converter:
             self.cenGreen.data = self.transform(green_joint_position, dist, yellow_joint_position)
         if red_joint_position is not None:
             self.cenRed.data = self.transform(red_joint_position, dist, yellow_joint_position)
+        # print(f"sphere: {self.sphere.data}")
 
-        # self.cenBlue.data = self.transform(self.detectBlueCenter(Image), dist, yellow_joint_position)
-        # self.cenGreen.data = self.transform(self.detectGreenCenter(Image), dist, yellow_joint_position)
-        # self.cenRed.data = self.transform(self.detectRedCenter(Image), dist, yellow_joint_position)
-        # self.cenYellow.data = self.transform(self.detectYellowCenter(Image), dist, yellow_joint_position)
-
-        return "a"
 
     def transform(self, coord, dist, origin):
         """
@@ -217,27 +210,30 @@ def get_target(image):
     contours, hierarchy = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     sphere, cuboid = None, None
-    for contour in contours[1:]:
-        moments = cv2.moments(contour)
-        centre_x = int(moments["m10"] / moments["m00"])
-        centre_y = int(moments["m01"] / moments["m00"])
+    try:
+        for contour in contours[1:]:
+            moments = cv2.moments(contour)
+            centre_x = int(moments["m10"] / moments["m00"])
+            centre_y = int(moments["m01"] / moments["m00"])
 
-        area = cv2.contourArea(contour)
-        perimeter = cv2.arcLength(contour, True)
+            area = cv2.contourArea(contour)
+            perimeter = cv2.arcLength(contour, True)
 
-        compactness = 2 * np.sqrt(area * np.pi) / perimeter
-        hull = cv2.convexHull(contour)
-        hull_area = cv2.contourArea(hull)
-        hull_perimeter = cv2.arcLength(hull, True)
-        convexity = hull_perimeter / perimeter
-        # print(f"convexity, compactness: {convexity, compactness}")
-        # The sphere consistently shows compactness around 0.95 and
-        # the cuboid around 0.89
-        if compactness > 0.925 and convexity > 0.95:
-            sphere = np.array([centre_x, centre_y])
-        elif compactness <= 0.925 and convexity > 0.95:
-            cuboid = np.array([centre_x, centre_y])
-    return sphere
+            compactness = 2 * np.sqrt(area * np.pi) / perimeter
+            hull = cv2.convexHull(contour)
+            hull_area = cv2.contourArea(hull)
+            hull_perimeter = cv2.arcLength(hull, True)
+            convexity = hull_perimeter / perimeter
+            # print(f"convexity, compactness: {convexity, compactness}")
+            # The sphere consistently shows compactness around 0.95 and
+            # the cuboid around 0.89
+            if compactness > 0.925 and convexity > 0.95:
+                sphere = np.array([centre_x, centre_y])
+            elif compactness <= 0.925 and convexity > 0.95:
+                cuboid = np.array([centre_x, centre_y])
+        return sphere
+    except:
+        return None
 
 
 def normalize_rgb(image):

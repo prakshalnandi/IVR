@@ -65,6 +65,7 @@ class subscribe:
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
+
     def sphere_yz_callback(self, data):
         self.sphere_yz.data = data.data
 
@@ -98,21 +99,17 @@ class subscribe:
         try:
             # Add 0.8 metres to the z position to account for the base platform that the robot
             # sits on.
-            sphere_position = np.array([self.sphere_xz.data[0], self.sphere_yz.data[0], 0.8 +
-                                        (self.sphere_xz.data[1] + self.sphere_yz.data[1]) / 2])
-            self.target_x = sphere_position[0]
-            self.target_y = sphere_position[1]
-            self.target_z = sphere_position[2]
-            self.target.data = (self.target_x,self.target_y,self.target_z)
-            self.target_x_pub.publish(self.target_x)
-            self.target_y_pub.publish(self.target_y)
-            self.target_z_pub.publish(self.target_z)
-            self.target_pub.publish(self.target)
-            
-            #end_position = np.array([self.sphere_xz.data[0], self.sphere_yz.data[0], 0.8 +
-                                        #(self.sphere_xz.data[1] + self.sphere_yz.data[1]) / 2])
-            
-
+            if self.sphere_xz.data:
+                sphere_position = np.array([self.sphere_xz.data[0], self.sphere_yz.data[0], 0.8 +
+                                            (self.sphere_xz.data[1] + self.sphere_yz.data[1]) / 2])
+                self.target_x = sphere_position[0]
+                self.target_y = sphere_position[1]
+                self.target_z = sphere_position[2]
+                self.target.data = (self.target_x, self.target_y, self.target_z)
+                self.target_x_pub.publish(self.target_x)
+                self.target_y_pub.publish(self.target_y)
+                self.target_z_pub.publish(self.target_z)
+                self.target_pub.publish(self.target)
             # To get the angle for joint 4 we have to use the forward kinematics matrix.
             # print(f"camera1: {self.image1Red.data}, camera 2: {self.image2Red.data}")
             red_pos = np.array([self.image2Red.data[0], self.image1Red.data[0], (self.image1Red.data[1] +
@@ -122,7 +119,7 @@ class subscribe:
             blue_pos = np.array([self.image2Blue.data[0], self.image1Blue.data[0], (self.image1Blue.data[1] +
                                                                                     self.image2Blue.data[1]) / 2])
             print("-" * 20)
-            
+
             self.end_x = red_pos[0]
             self.end_y = red_pos[1]
             self.end_z = red_pos[2]
@@ -138,8 +135,6 @@ class subscribe:
 
             ############### Testing ##################
             link2_norm = link2 / np.linalg.norm(link2)
-            # print("link2: ", link2, green_pos, blue_pos)
-            # happy with this estimation
             theta3 = np.arcsin(link2_norm[0])
             self.joint3.data = theta3
             theta4 = np.arccos(link2.dot(link3) / (np.linalg.norm(link2) * np.linalg.norm(link3)))

@@ -60,7 +60,7 @@ class image_converter:
         except CvBridgeError as e:
             print(e)
         img = self.cv_image2
-        print(self.cenRed)
+        # print(self.cenRed)
         lower_red = np.array([0, 0, 100])
         upper_red = np.array([0, 0, 255])
         maskred = cv2.inRange(img, lower_red, upper_red)
@@ -72,9 +72,9 @@ class image_converter:
         maskOrange = cv2.inRange(hsv, (10, 100, 20), (25, 255, 255))
         data = tuple(self.detectCenter(mask))
 
-        img = cv2.circle(img, data, 1, (0,255,0), thickness=1, lineType=8, shift=0)
-        cv2.imshow('window2', img)
-        cv2.waitKey(1)
+        img = cv2.circle(img, data, 1, (0, 255, 0), thickness=1, lineType=8, shift=0)
+        # cv2.imshow('window2', img)
+        # cv2.waitKey(1)
 
 
     def CalculateJoints(self, Image):
@@ -99,11 +99,7 @@ class image_converter:
         if red_joint_position is not None:
             self.cenRed.data = self.transform(red_joint_position, dist, yellow_joint_position)
 
-        # self.cenBlue.data = self.transform(self.detectBlueCenter(Image), dist, yellow_joint_position)
-        # self.cenGreen.data = self.transform(self.detectGreenCenter(Image), dist, yellow_joint_position)
-        # self.cenRed.data = self.transform(self.detectRedCenter(Image), dist, yellow_joint_position)
-        # self.cenYellow.data = self.transform(self.detectYellowCenter(Image), dist, yellow_joint_position)
-        return "a"
+        # print(f"sphere: {self.sphere.data}")
 
     def transform(self, coord, dist, origin):
         """
@@ -188,12 +184,15 @@ class image_converter:
 
     def detectCenter(self, image):
 
-        Mnts = cv2.moments(image)
-        cX = int(Mnts["m10"] / Mnts["m00"])
-        cY = int(Mnts["m01"] / Mnts["m00"])
+        try:
+            Mnts = cv2.moments(image)
+            cX = int(Mnts["m10"] / Mnts["m00"])
+            cY = int(Mnts["m01"] / Mnts["m00"])
 
-        return np.array([cX, cY])
+            return np.array([cX, cY])
 
+        except:
+            pass
         ## Publish the results
         # try:
         #  self.image_pub2.publish(self.bridge.cv2_to_imgmsg(self.cv_image2, "bgr8"))
@@ -221,28 +220,31 @@ def get_target(image):
     contours, hierarchy = cv2.findContours(threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     sphere, cuboid = None, None
-    for contour in contours[1:]:
-        moments = cv2.moments(contour)
-        centre_x = int(moments["m10"] / moments["m00"])
-        centre_y = int(moments["m01"] / moments["m00"])
+    try:
+        for contour in contours[1:]:
+            moments = cv2.moments(contour)
+            centre_x = int(moments["m10"] / moments["m00"])
+            centre_y = int(moments["m01"] / moments["m00"])
 
-        area = cv2.contourArea(contour)
-        perimeter = cv2.arcLength(contour, True)
+            area = cv2.contourArea(contour)
+            perimeter = cv2.arcLength(contour, True)
 
-        compactness = 2 * np.sqrt(area * np.pi) / perimeter
-        hull = cv2.convexHull(contour)
-        hull_area = cv2.contourArea(hull)
-        hull_perimeter = cv2.arcLength(hull, True)
-        convexity = hull_perimeter / perimeter
-        # print(f"convexity, compactness: {convexity, compactness}")
-        # The sphere consistently shows compactness around 0.95 and
-        # the cuboid around 0.89
-        if compactness > 0.925 and convexity > 0.95:
-            sphere = np.array([centre_x, centre_y])
-        elif compactness <= 0.925 and convexity > 0.95:
-            cuboid = np.array([centre_x, centre_y])
+            compactness = 2 * np.sqrt(area * np.pi) / perimeter
+            hull = cv2.convexHull(contour)
+            hull_area = cv2.contourArea(hull)
+            hull_perimeter = cv2.arcLength(hull, True)
+            convexity = hull_perimeter / perimeter
+            # print(f"convexity, compactness: {convexity, compactness}")
+            # The sphere consistently shows compactness around 0.95 and
+            # the cuboid around 0.89
+            if compactness > 0.925 and convexity > 0.95:
+                sphere = np.array([centre_x, centre_y])
+            elif compactness <= 0.925 and convexity > 0.95:
+                cuboid = np.array([centre_x, centre_y])
 
-    return sphere
+        return sphere
+    except:
+        return None
 
 def normalize_rgb(image):
     image = image.astype(np.uint16)

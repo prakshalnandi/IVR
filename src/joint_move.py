@@ -21,16 +21,26 @@ def move():
   while not rospy.is_shutdown():
     cur_time = np.array([rospy.get_time()])-t0
        
+    # joint2new=Float64()
+    # joint2new.data= np.pi/2 * np.sin(cur_time * np.pi/15)
+    # #print(joint2new)
+    # joint3new=Float64()
+    # joint3new.data= np.pi/2 * np.sin(cur_time * np.pi/18)
+    # joint4new=Float64()
+    # joint4new.data= np.pi/2 * np.sin(cur_time * np.pi/20)
+
     joint2new=Float64()
-    joint2new.data= np.pi/2 * np.sin(cur_time * np.pi/15)
+    joint2new.data= np.pi/3 * np.sin(cur_time * np.pi/15)
     #print(joint2new)
     joint3new=Float64()
-    joint3new.data= np.pi/2 * np.sin(cur_time * np.pi/18)
+    joint3new.data= np.pi/3 * np.sin(cur_time * np.pi/18)
     joint4new=Float64()
-    joint4new.data= np.pi/2 * np.sin(cur_time * np.pi/20)
-    #robot_joint2_new_pub.publish(joint2new)
+    joint4new.data= np.pi/3 * np.sin(cur_time * np.pi/20)
+
+
+    robot_joint2_new_pub.publish(joint2new)
     robot_joint3_new_pub.publish(joint3new)
-    #robot_joint4_new_pub.publish(joint4new)
+    robot_joint4_new_pub.publish(joint4new)
     
     rate.sleep()
 
