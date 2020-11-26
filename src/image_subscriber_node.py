@@ -44,15 +44,24 @@ class subscribe:
         self.robot_joint2_pub = rospy.Publisher("/Image/Joint2", Float64, queue_size=10)
         self.robot_joint3_pub = rospy.Publisher("/Image/Joint3", Float64, queue_size=10)
         self.robot_joint4_pub = rospy.Publisher("/Image/Joint4", Float64, queue_size=10)
+        self.robot_joints_pub = rospy.Publisher("/Image/Joints", Float64MultiArray, queue_size=10)
         self.joint2 = Float64()
         self.joint3 = Float64()
         self.joint4 = Float64()
+        self.joints = Float64MultiArray()
         self.target_x_pub = rospy.Publisher("/target/x_position", Float64, queue_size=10)
         self.target_y_pub = rospy.Publisher("/target/y_position", Float64, queue_size=10)
         self.target_z_pub = rospy.Publisher("/target/z_position", Float64, queue_size=10)
+        self.target_pub = rospy.Publisher("/Image/target", Float64MultiArray, queue_size=10)
         self.target_x = Float64()
         self.target_y = Float64()
         self.target_z = Float64()
+        self.target = Float64MultiArray()
+        self.end_pub = rospy.Publisher("/Image/endeffector", Float64MultiArray, queue_size=10)
+        self.end_x = Float64()
+        self.end_y = Float64()
+        self.end_z = Float64()
+        self.end = Float64MultiArray()
         # initialize the bridge between openCV and ROS
         self.bridge = CvBridge()
 
@@ -85,16 +94,6 @@ class subscribe:
 
     def callback8(self, data):
         self.image2Yellow.data = data.data
-        # print(self.image2Yellow.data)
-        # print(self.image1Yellow.data)
-        # print(self.image1Green.data)
-        # print(self.image1Red.data)
-        # print(self.image1Blue.data)
-        # print(self.image2Green.data)
-        # print(self.image2Red.data)
-        # print(self.image2Blue.data)
-
-        # self.joint3.data = np.arctan2(self.image2Yellow.data[0] - self.image2Blue.data[0],self.image2Yellow.data[1] - self.image2Blue.data[1])
 
         try:
             # Add 0.8 metres to the z position to account for the base platform that the robot
@@ -104,9 +103,15 @@ class subscribe:
             self.target_x = sphere_position[0]
             self.target_y = sphere_position[1]
             self.target_z = sphere_position[2]
+            self.target.data = (self.target_x,self.target_y,self.target_z)
             self.target_x_pub.publish(self.target_x)
             self.target_y_pub.publish(self.target_y)
             self.target_z_pub.publish(self.target_z)
+            self.target_pub.publish(self.target)
+            
+            #end_position = np.array([self.sphere_xz.data[0], self.sphere_yz.data[0], 0.8 +
+                                        #(self.sphere_xz.data[1] + self.sphere_yz.data[1]) / 2])
+            
 
             # To get the angle for joint 4 we have to use the forward kinematics matrix.
             # print(f"camera1: {self.image1Red.data}, camera 2: {self.image2Red.data}")
@@ -117,6 +122,15 @@ class subscribe:
             blue_pos = np.array([self.image2Blue.data[0], self.image1Blue.data[0], (self.image1Blue.data[1] +
                                                                                     self.image2Blue.data[1]) / 2])
             print("-" * 20)
+            
+            self.end_x = red_pos[0]
+            self.end_y = red_pos[1]
+            self.end_z = red_pos[2]
+            self.end.data = (self.end_x,self.end_y,self.end_z)
+            #self.target_x_pub.publish(self.target_x)
+            #self.target_y_pub.publish(self.target_y)
+            #self.target_z_pub.publish(self.target_z)
+            self.end_pub.publish(self.end)
 
             link1 = blue_pos  # yellow joint is always at (0,0,0)
             link2 = green_pos - blue_pos
@@ -184,13 +198,16 @@ class subscribe:
                 self.joint4.data = theta4
             else:
                 self.joint4.data = -theta4
-
+                
+            self.joints.data = (self.joint2.data,self.joint3.data,self.joint4.data)
             print("t2: ", self.joint2.data)
             print("t3: ", self.joint3.data)
             print("t4: ", self.joint4.data)
+            
             self.robot_joint2_pub.publish(self.joint2.data)
             self.robot_joint3_pub.publish(self.joint3.data)
             self.robot_joint4_pub.publish(self.joint4.data)
+            self.robot_joints_pub.publish(self.joints)
 
 
         except CvBridgeError as e:
