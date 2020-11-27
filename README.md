@@ -3,14 +3,12 @@ IVR Assignment (Robot Vision and Control)
 
 This is a description of how to run different parts of the assignments.
 
-Joint Estimation :
-Image1 and Image2 python files captures blobs from the images and publishes data for each spheres including target. Image Subscriber receives all these data and converts them in 3d positions, estimates joints angles based on algorithms and publishes them. You can use joint_move script to move robot joints, please change sinusoidal equation as required. To run joint estimation part, run following scripts in this sequence and use /Image/Joints topic to track the estimated values.
+Joint Estimation and Target detection:
+Image1 and Image2 python files captures blobs from the images and publishes data for each spheres including target. Image Subscriber receives all these data and converts them in 3d positions, estimates joints angles based on algorithms and publishes them. You can use joint_move script to move robot joints, please change sinusoidal equation as required. To run joint estimation part, run following scripts in this sequence and use /Image/Joints topic to track the estimated values. Estimated target values are published on topic /Image/target:
 * image1.py
 * image2.py    
 * image_subscriber_node.py    
 * joint_move.py
-
-Target detection:
 
 Forward Kinematics :
 Robot_Forward_Kinematics script takes values of joints as input and returns end effector values. This is a simple python script without any ros library used.
