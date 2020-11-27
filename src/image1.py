@@ -48,11 +48,7 @@ class image_converter:
 
         self.CalculateJoints(self.cv_image1)
         sphere = self.sphere.data
-        # print(sphere)
 
-
-        # self.robot_joint2_pub.publish(self.joint2)
-        # self.robot_joint4_pub.publish(self.joint4)
         # Publish the results
         try:
             # self.image_pub1.publish(self.bridge.cv2_to_imgmsg(self.cv_image1, "bgr8"))
@@ -63,21 +59,6 @@ class image_converter:
             self.spherePublisher.publish(self.sphere)
         except CvBridgeError as e:
             print(e)
-
-
-
-        # add code to move joints
-        # cur_time = np.array([rospy.get_time()])-self.t0
-        # joint2new=Float64()
-        # joint2new.data= np.pi/2 * np.sin(cur_time * np.pi/15)
-        # print(joint2new)
-        # joint3new=Float64()
-        # joint3new.data= np.pi/2 * np.sin(cur_time * np.pi/18)
-        # joint4new=Float64()
-        # joint4new.data= np.pi/2 * np.sin(cur_time * np.pi/20)
-        # self.robot_joint2_new_pub.publish(joint2new)
-        # self.robot_joint3_new_pub.publish(joint3new)
-        # self.robot_joint4_new_pub.publish(joint4new)
 
     def CalculateJoints(self, Image):
 
@@ -181,12 +162,15 @@ class image_converter:
             return None
 
     def detectCenter(self, image):
+        try:
+          Mnts = cv2.moments(image)
+          cX = int(Mnts["m10"] / Mnts["m00"])
+          cY = int(Mnts["m01"] / Mnts["m00"])
 
-        Mnts = cv2.moments(image)
-        cX = int(Mnts["m10"] / Mnts["m00"])
-        cY = int(Mnts["m01"] / Mnts["m00"])
-
-        return np.array([cX, cY])
+          return np.array([cX, cY])
+        
+        except:
+          pass
 
 
 def get_target(image):

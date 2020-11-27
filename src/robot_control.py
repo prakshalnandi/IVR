@@ -36,9 +36,9 @@ class robot_controller:
         #self.imagetargetsub = rospy.Subscriber("/Image/target", Float64MultiArray, self.callback)
         self.imagetargetsub = rospy.Subscriber("/target/joint_states", JointState, self.callback)
         self.endeffectorsub = rospy.Subscriber("/Image/endeffector", Float64MultiArray, self.callback3)
-        #self.endeffectorsub = rospy.Subscriber("/Image/endeffector", Float64MultiArray, self.callback3)
-        self.jointestsub = rospy.Subscriber("/robot/joint_states", JointState, self.callback2)
-        #self.jointestsub = rospy.Subscriber("/Image/joints", Float64MultiArray, self.callback2)
+        self.jointactualsub = rospy.Subscriber("/robot/joint_states", JointState, self.callbackJointStates)
+        #self.jointvisionsub = rospy.Subscriber("/Image/Joints", Float64MultiArray, self.callbackVisionJoints)
+        #self.joint1stsub = rospy.Subscriber("/Image/Joints", Float64MultiArray, self.callbackVisionJoints)
         self.endeffector = Float64MultiArray()
         self.target = Float64MultiArray()
         self.previousjoints = Float64MultiArray()
@@ -47,8 +47,7 @@ class robot_controller:
         self.robot_joint2_pub = rospy.Publisher("/robot/joint2_position_controller/command", Float64, queue_size=10)
         self.robot_joint3_pub = rospy.Publisher("/robot/joint3_position_controller/command", Float64, queue_size=10)
         self.robot_joint4_pub = rospy.Publisher("/robot/joint4_position_controller/command", Float64, queue_size=10)
-        #angles = [0.5, 1.0, -0.4, 0.6]
-
+        
     # Define a circular trajectory
     def trajectory(self):
 
@@ -109,17 +108,12 @@ class robot_controller:
         dt	 = cur_time - self.time_previous_step
         if(dt > 1) :
           dt = 0.04
+        if(dt == 0.0) :
+          dt = 0.04
         self.time_previous_step = cur_time
-        # robot end-effector position
-        # unc pos = self.detect_end_effector(image)
-        # desired trajectory
-        # cmt change
-	
-        #pos_d = self.trajectory()
-        # cmt
-        #pos = self.oldpos
-        print("Target",self.target)
-        print("End Effector",self.endeffector)
+
+        #print("Target",self.target)
+        #print("End Effector",self.endeffector)
         pos_d = np.array(self.target)
         pos = np.array(self.endeffector)
         
@@ -129,73 +123,42 @@ class robot_controller:
         # estimate error
         self.error = pos_d - pos
         #self.error = pos_d
-        #print("error d",self.error_d)
-        #q = self.detect_joint_angles(image)  # estimate initial value of joints'
+        # estimate initial value of joints'
         J_inv = np.linalg.pinv(self.calculate_jacobian(self.q_previous))  # calculating the psudeo inverse of Jacobian
 
         dq_d = np.dot(J_inv, (np.dot(K_d, self.error_d.transpose()) + np.dot(K_p,self.error.transpose())))  # control input (angular velocity of joints)
         #dq_d = np.dot(J_inv, self.error_d.transpose())
-        print("dq_d",dq_d)
-        print("dt",dt)
+        #print("dq_d",dq_d)
+        #print("dt",dt)
         q_d = self.q_previous + (dt * dq_d)  # control input (angular position of joints)
-        #self.oldpos = pos_d
-        #if q_d[1] > 1.6 or q_d[2] > 1.6:
-        #  q_d = self.q_previous
-        #self.q_previous[0] = q_d[0]
-        #self.q_previous[3] = q_d[3]
         self.q_previous = q_d
-        #self.q_previous[1] = self.previousjoints[0]
-        #self.q_previous[2] = self.previousjoints[1]
-        print("previous",self.q_previous)
+        #print("previous",self.q_previous)
         return q_d
-        
+     
+    #End effector Values   
     def callback3(self, data):
         self.endeffector = data.data
-        # # Recieve the image
-        # try:
-        #     cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-        # except CvBridgeError as e:
-        #     print(e)
-        # Recieve data, process it, and publish
-    def callback2(self, data):
+    
+    #Values of Actual Joints  
+    def callbackJointStates(self, data):
         self.q_previous = data.position
-        #self.q_previous[2] = data.data[1]
-        #self.q_previous[3] = data.data[2]
-        #self.q_previous[1] = data.data[0]
+    
+    #Values of Joints from vision    
+    def callbackVisionJoints(self, data):
+        self.q_previous[1] = data.data[0]        
+        self.q_previous[2] = data.data[1]
+        self.q_previous[3] = data.data[2]
+        
+    #Actual value of 1st Joint    
+    def callback1stJoint(self, data):        
+        self.q_previous[0] = data
 
     def callback(self, data):
-        # # Recieve the image
-        # try:
-        #     cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-        # except CvBridgeError as e:
-        #     print(e)
-
-        # Perform image processing task (your code goes here)
-        # The image is loaded as cv_imag
-
-        # Uncomment if you want to save the image
-        # cv2.imwrite('image_copy.png', cv_image)
-
-        # cv2.imshow('window', cv_image)
-        # cv2.waitKey(3)
-
-        # # publish robot joints angles (lab 1 and 2)
-        # self.joints = Float64MultiArray()
-        # self.joints.data = self.detect_joint_angles(cv_image)
-
-        # compare the estimated position of robot end-effector calculated from images with forward kinematics(lab 3)
-        # x_e = self.forward_kinematics(cv_image)
-        # x_e_image = self.detect_end_effector(cv_image)
-        # self.end_effector = Float64MultiArray()
-        # self.end_effector.data = x_e_image
-	#print("A",self.imagetarget.data)
-	
-        # send control commands to joints (lab 3)
-        #self.target = data.data
+        
+        # send control commands to joints
+        
         self.target = data.position
         q_d = self.control_closed()
-        
-        # q_d = self.control_open(cv_image)
         self.joint1 = Float64()
         self.joint1.data = q_d[0]
         self.joint2 = Float64()
@@ -204,15 +167,11 @@ class robot_controller:
         self.joint3.data = q_d[2]
         self.joint4 = Float64()
         self.joint4.data = q_d[3]
-        #print(self.joint2.data)
-        # Publishing the desired trajectory on a topic named trajectory(lab 3)
-        #x_d = self.trajectory()  # getting the desired trajectory
-        #self.trajectory_desired = Float64MultiArray()
-        #self.trajectory_desired.data = x_d
-        print("joints",q_d)
+
+        #print("joints",q_d)
+        
         # Publish the results
         try:
-
             self.robot_joint1_pub.publish(self.joint1)
             self.robot_joint2_pub.publish(self.joint2)
             self.robot_joint3_pub.publish(self.joint3)
